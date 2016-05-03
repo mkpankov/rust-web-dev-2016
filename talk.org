@@ -1,0 +1,49 @@
+#+TITLE: Практика разработки веб-серверов на Rust
+#+AUTHOR: Панков Михаил
+#+DATE: 17 мая 2016
+#+EMAIL: work@michaelpankov.com
+#+LANGUAGE: ru
+#+CATEGORY: task
+#+OPTIONS:   H:2 num:t toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP:
+#+LINK_HOME:
+#+startup: beamer
+#+LaTeX_CLASS: beamer
+#+COLUMNS: %40ITEM %10BEAMER_env(Env) %9BEAMER_envargs(Env Args) %4BEAMER_col(Col) %10BEAMER_extra(Extra)
+#+latex_header: \usepackage[english,russian]{babel}
+#+latex_header: \mode<beamer>{\usetheme{metropolis}}
+
+* Обо мне
+  :PROPERTIES:
+  :END:
+
+** Кто я
+   :PROPERTIES:
+   :END:
+
+*** Системный программист
+
+
+** Какой опыт разработки на Rust
+   :PROPERTIES:
+   :END:
+
+* Задача
+
+* Почему Rust?
+
+* Окружение
+
+* Разработка
+
+* Отладка
+
+* Continuous Integration
+
+* Сообщество
+
+* Литература
