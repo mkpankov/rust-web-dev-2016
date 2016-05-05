@@ -761,6 +761,12 @@ https://gitter.im/ruRust/general
     :BEAMER_env: note
     :END:
 
+* Шурик на GitHub
+
+** Шурик на GitHub
+
+https://github.com/mkpankov/shurik
+
 * Литература
 
 ** Литература
@@ -776,6 +782,8 @@ https://gitter.im/ruRust/general
 - Reddit
 
 - http://rustycrate.ru
+
+* Спасибо!
 
 * Backup
 
