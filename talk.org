@@ -4,7 +4,7 @@
 #+EMAIL: work@michaelpankov.com
 #+LANGUAGE: ru
 #+CATEGORY: task
-#+OPTIONS:   H:2 num:t toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   H:2 num:t toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
 #+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc
 #+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
 #+EXPORT_SELECT_TAGS: export
@@ -13,6 +13,7 @@
 #+LINK_HOME:
 #+startup: beamer
 #+LaTeX_CLASS: beamer
+# +LaTeX_CLASS_OPTIONS: [notes]
 #+COLUMNS: %40ITEM %10BEAMER_env(Env) %9BEAMER_envargs(Env Args) %4BEAMER_col(Col) %10BEAMER_extra(Extra)
 #+latex_header: \usepackage[english,russian]{babel}
 #+latex_header: \mode<beamer>{\usetheme{metropolis}}
@@ -25,25 +26,840 @@
    :PROPERTIES:
    :END:
 
-*** Системный программист
+- Системный программист
 
+- Работал над компилятором, операционными системами
 
-** Какой опыт разработки на Rust
+- В данный момент отвечаю за инфраструктуру обеспечения качества в
+  проекте Kaspersky OS
+
+- В свободное время занимаюсь веб-разработкой
+
+** Какой у меня опыт разработки на Rust
    :PROPERTIES:
    :END:
 
+- Примерно 10000 строк
+
+- Вспомогательные инструменты, инфраструктура
+
+- Несколько веб-серверов
+
 * Задача
+
+** Задача
+
+- Нужен <<всегда зелёный master>>
+- Много разработчиков, большой поток Merge Request'ов
+- Простой проверки Merge Request'а на момент его создания недостаточно
+- Нужно упорядочивать изменения и проверять <<кандидата на новый master>> именно
+  в том виде, в котором он будет влит
+
+** Стек
+
+- GitLab Community Edition 8.x
+
+- Jenkins 1.x
+
+* Решение
+
+** Нужен сторож!
+
+Commit Gatekeeper под нашу инфраструктуру
+
+** Познакомьтесь с Шуриком
+
+***                                                          :B_column:BMCOL:
+    :PROPERTIES:
+    :BEAMER_col: 0.22
+    :BEAMER_env: column
+    :END:      
+    [[file:pics/shurik3.png][file:~/org/talks/rust-web-dev/pics/shurik3.png]]
+
+***                                                          :B_column:BMCOL:
+     :PROPERTIES:
+     :BEAMER_col: 0.72
+     :BEAMER_env: column
+     :END:
+- Смотрит в GitLab, получает по Webhook API оповещения о Merge Request'ах (MR) и
+  комментариях
+- Получает команды от автора и рецензента через комментарии к MR
+- Сливает MR с актуальным master, делает прогон Jenkins на нём, если успешно ---
+  обновляет master
+- Уведомляет автора, если очередной MR невозможно слить автоматически
+
+** Как это работает
+
+   [[file:pics/discussion.png][file:~/org/talks/rust-web-dev/pics/discussion.png]]
+
+* Сценарии работы
+
+** Рецензент одобрил и прогон успешен
+    :PROPERTIES:
+    :END:      
+
+#+begin_src plantuml :file simplest.png
+  actor Автор
+  actor Рецензент
+  database GitLab
+  entity Шурик
+  entity Jenkins
+  Автор -> GitLab : Merge Request #42
+  Рецензент -> GitLab : Комментарий к MR#42: r+
+  GitLab -> Шурик : MR WebHook
+  Шурик -> Шурик : Обновить MR до master
+  Шурик -> GitLab : git push try
+  Шурик -> Jenkins : Запустить сборку:\nветка try (MR#42)
+  Jenkins -> Шурик : Результат сборки:\nуспешно
+  Шурик -> GitLab : git push master,\nMR#42 отмечается как merged
+#+end_src
+
+** Рецензент одобрил, но прогон не успешен
+   :PROPERTIES:
+   :END:      
+
+#+begin_src plantuml :file failed.png
+  actor Автор
+  actor Рецензент
+  database GitLab
+  entity Шурик
+  entity Jenkins
+  Автор -> GitLab : Merge Request #42
+  Рецензент -> GitLab : Комментарий к MR#42: r+
+  GitLab -> Шурик : MR WebHook
+  Шурик -> Шурик : Обновить MR до master
+  Шурик -> GitLab : git push try
+  Шурик -> Jenkins : Запустить сборку:\nветка try (MR#42)
+  Jenkins -> Шурик : Результат сборки:\nс ошибками
+  Шурик -> GitLab : Комментарий к MR#42:\n"Прогон с ошибками"
+
+  group Следующая итерация
+
+  end
+#+end_src
+
+** Плохой код...
+    :PROPERTIES:
+    :END:
+
+[[file:pics/hit.png][file:~/org/talks/rust-web-dev/pics/hit.png]]
+
+** не пройдёт!
+    :PROPERTIES:
+    :BEAMER_env: frame
+    :END:
+
+[[file:pics/hurt.png][file:~/org/talks/rust-web-dev/pics/hurt.png]]
+
+** Сценариев много
+
+...обрабатываются они все так, чтобы непротестированный кандидат не
+стал новым master
+
+* Что ещё есть
+
+** Что ещё есть
+
+- Сохранение состояния, восстановление при сбое через перезапуск приложения
+
+- Изоляция проектов: сбой в обработке одного проекта не влияет на другие
+
+- Логи
+
+- Конфигурация в TOML-файле
+
+* <<Связанные изменения>>
+
+** Связанные изменения
+
+- Изменения в нескольких репозиториях
+
+- Если применить эти изменения не ко всем нужным репозиториям, это
+  приведёт к поломке сборки или тестов
+
+- Если не учитывать связанность изменений, сторож никогда их не
+  пропустит, т.к. тестирование каждого отдельного MR завершится ошибкой
+
+- Большой пласт функциональности
+
+- Пока не реализовано, будущая работа
 
 * Почему Rust?
 
-* Окружение
+** Почему Rust?
+   :PROPERTIES:
+   :END:
 
-* Разработка
+- Хорошая поддержка многопоточности стандартной библиотекой: мьютексы, каналы,
+  ~RwLock~...
+
+- *Надёжные* многопоточность и обработка ошибок, при этом нулевые накладные
+  расходы
+
+- Хорошая изоляция сбоев: по умолчанию, паника останавливается на границе потока
+
+*** Что значит надёжная многопоточность с нулевыми накладными расходами? :B_note:
+    :PROPERTIES:
+    :BEAMER_env: note
+    :END:
+
+Значит когда мьютексы нужны --- об этом скажет компилятор. Когда не нужны ---
+они не нужны, и всё при этом будет работать.
+
+*** Что значит надёжная обработка ошибок?                            :B_note:
+    :PROPERTIES:
+    :BEAMER_env: note
+    :END:
+
+Значит невозможно забыть обработать ошибку. Все места, где есть возможность
+паники, или явно отмечены (~.unwrap()~), или явно обработаны.
+
+** Почему Rust? (продолжение)
+
+- Вся наша большая команда разработчиков не будет останавливаться и ждать, пока
+  починят инфраструктуру
+
+- Редко ломается
+
+- Когда ломается --- это происходит в изолированных местах
+
+* Рабочее окружение
+
+** Используем стабильный Rust
+
+- Любой =stable= проходит 12-недельный цикл использования людьми, которые сидят
+  на =beta=
+
+- Все изменения, которые попадают в =beta= после её отрезания - исправления
+  багов
+
+- Т.е. =stable= содержит меньше неизвестных багов
+
+- =nightly= опасен тем, что нестабильные возможности могут изменить или удалить
+
+** Что с nightly
+
+- Мне не понадобилось ничего из =nightly=
+
+- Может быть нужен, если вам нужно что-то новое или нестабильное
+
+  - Например, кодогенерация (процедурные макросы), специализация (она ещё не в
+    =stable=; будет в 1.10) и т.д.
+
+** multirust
+
+- Берём =multirust= и ставим все нужные версии компилятора через него
+
+- Новая версия =multirust= называется =rustup.rs= и работает на Windows
+
+- [[https://www.rustup.rs/]]
+
+* IDE
+
+** IDE
+
+- Их есть у нас
+
+- Построены на базе всех мыслимых и немыслимых редакторов и IDE
+
+- Почти все используют для навигациии и автодополнения =racer=
+
+- http://is.gd/rust_ide
+
+  [[https://www.rust-lang.org/ides.html]]
+
+  https://areweideyet.com/
+
+** racer
+
+- Он не всегда хорошо работает
+
+** IDE RFC
+
+- Принят
+
+  https://github.com/rust-lang/rfcs/pull/1317
+
+- Был заблокирован рефакторингом компилятора --- MIR
+
+- Демон-<<оракул>> будет отвечать на вопросы IDE о программе
+
+  https://github.com/rust-lang/rust/issues/31548
+
+- У нас скоро будут первоклассные IDE!
+
+* Экосистема веб-приложений
+
+** На Rust уже можно писать веб-приложения?
+
+- Можно
+
+- http://www.arewewebyet.org/
+
+** Состояние экосистемы
+
+- Веб-сервер
+  - hyper
+- Веб-фреймворки
+  - iron
+  - nickel
+  - conduit
+  - sappers
+- Драйверы к БД
+  - MySQL
+  - PostgreSQL
+  - Redis
+- ORM
+  - rustorm
+  - diesel
+
+** Состояние экосистемы (продолжение)
+
+Для бэкенда пойдёт!
+
+И для инфраструктурных серверов
+
+* Как найти библиотеки?
+
+** crates.io
+
+Центральное хранилище с поиском
+
+* Как найти хорошие библиотеки?
+
+** Хорошие библиотеки
+
+- Работают
+- Имеют удобное API
+- Хорошо документированы
+- Сложно понять, пока не попробуешь
+
+** Косвенные признаки
+
+- Имеют много пользователей
+  - Есть на crates.io
+- Обновляются чаще, чем раз в тысячелетие
+  - Есть на crates.io
+- Есть документация и примеры
+  - Ссылка на документацию на crates.io
+- Люди хорошо отзываются
+  - За этим мы тут и собрались
+
+* Нужной библиотеки нет, что делать?
+
+** Foreign Function Interface
+
+У Rust первоклассный FFI, и он хорошо встраивается во многие языки
+
+Легко позвать существующую библиотеку на другом языке
+
+http://jakegoulding.com/rust-ffi-omnibus/
+
+* Веб-фреймворк
+
+* Iron
+
+** Почему?
+
+- Самый матёрый
+
+- Простой
+
+- Модульный
+
+* GitLab API
+
+** GitLab API/1
+
+Написана своя минималистичная обёртка
+
+** GitLab API/2
+
+#+BEGIN_SRC rust
+pub struct Api {
+    root: Url,
+}
+
+impl Api {
+    pub fn new<T: IntoUrl>(maybe_url: T)
+           -> Result<Self, ::url::ParseError> {
+        let url = try!(maybe_url.into_url());
+        Ok(
+            Api {
+                root: url,
+            })
+    }
+#+END_SRC
+
+** GitLab API/3
+
+#+BEGIN_SRC rust
+impl Api {
+    pub fn login(
+           &self, username: &str, password: &str)
+           -> Result<Session, LoginError> {
+        let client = Client::new();
+        let mut res =
+            try!(
+              client.post(
+                &*format!("{}/session", self.root))
+              .body(
+                &*format!(
+                  "login={}&password={}",
+                  username, password))
+              .send());
+#+END_SRC
+
+** GitLab API/4
+
+#+BEGIN_SRC rust
+...     let mut text = String::new();
+        try!(res.read_to_string(&mut text));
+        let json: ::serde_json::value::Value =
+          ::serde_json::from_str(&text).unwrap();
+        let obj =
+          try!(json.as_object().ok_or(JsonError));
+        let private_token_value =
+          try!(obj
+               .get("private_token")
+               .ok_or(JsonObjectError));
+        let private_token =
+          try!(private_token_value
+               .as_string()
+               .ok_or(JsonObjectStringError));
+#+END_SRC
+
+** GitLab API/5
+
+#+BEGIN_SRC rust
+        Ok(
+            Session {
+                root: self.root.clone(),
+                private_token: private_token
+                               .to_owned(),
+            })
+    }
+}
+
+pub struct Session {
+    root: Url,
+    private_token: String,
+}
+#+END_SRC
+
+** GitLab API/6
+
+#+BEGIN_SRC rust
+quick_error! {
+    #[derive(Debug)]
+    pub enum LoginError {
+        Http(err: ::hyper::error::Error) { from() }
+        Read(err: ::std::io::Error) { from() }
+        Json(err: JsonError) { from() }
+        JsonObject(err: JsonObjectError) { from() }
+        JsonObjectString(err: JsonObjectStringError) {
+            from()
+        }
+    }
+}
+#+END_SRC
+
+* Общая архитектура
+
+** Разделяемое состояние
+
+#+BEGIN_SRC rust
+    let gitlab_login_config =
+      get_gitlab_login_config(&*config).unwrap();
+    let gitlab_session =
+      login_to_gitlab(gitlab_login_config).unwrap();
+    let gitlab_session = Arc::new(gitlab_session);
+    for (psid, project_set) in project_sets {
+        init_project_set(
+            gitlab_session.clone(), psid, project_set,
+            state_save_dir, &mut router, &mut builders,
+            config.clone());
+    }
+    Iron::new(router).http(
+        (&*gitlab_address, gitlab_port))
+        .expect("Couldn't start the web server");
+#+END_SRC
+
+** Многопоточность
+
+#+BEGIN_SRC rust
+    {
+        let mr_storage = mr_storage.clone();
+        let queue = queue.clone();
+        let project_set = project_set.clone();
+        let state_save_dir = state_save_dir.clone();
+
+        let builder = thread::spawn(move || {
+            handle_build_request(...);
+        });
+        builders.push(builder);
+    }
+#+END_SRC
+
+** Многопоточность (продолжение)
+
+#+BEGIN_SRC rust
+        let builder = thread::spawn(move || {
+            handle_build_request(...);
+        });
+        router.post(format!("/api/v1/{}/mr", psid),
+                    move |req: &mut Request|
+                    handle_mr(...));
+        router.post(format!("/api/v1/{}/comment", psid),
+                    move |req: &mut Request|
+                    handle_comment(...));
+#+END_SRC
+
+** Сериализация в JSON
+
+#+BEGIN_SRC rust
+#[derive(RustcDecodable, RustcEncodable)]
+#[derive(Debug, Clone)]
+struct MergeRequest {
+    id: MrUid,
+    human_number: u64,
+    checkout_sha: String,
+    status: Status,
+    approval_status: ApprovalStatus,
+    merge_status: MergeStatus,
+}
+#+END_SRC
+
+** Сериализация в JSON (вручную) /1
+
+#+BEGIN_SRC rust
+impl Encodable for MrUid {
+    fn encode<S: Encoder>(&self, s: &mut S)
+       -> Result<(), S::Error> {
+        format!(
+          "{},{}", self.id, self.target_project_id)
+        .encode(s)
+    }
+}
+#+END_SRC
+
+** Сериализация в JSON (вручную) /2
+
+#+BEGIN_SRC rust
+impl Decodable for MrUid {
+    fn decode<D: Decoder>(d: &mut D)
+       -> Result<Self, D::Error> {
+        let s = try!(d.read_str());
+        let s_v: Vec<_> = s.split(",").collect();
+        let mut v: Vec<u64> =
+          s_v.iter().map(|x| x.parse().unwrap())
+                    .collect();
+        let mr_uid = MrUid {
+            target_project_id: v.pop().unwrap(),
+            id: v.pop().unwrap(),
+        };
+        Ok(mr_uid)
+    }
+#+END_SRC
+
+* Рефакторинг
+
+** Рефакторинг
+
+- Очень легко делать*
+
+- Просто чинишь все места, где возникают ошибки компиляции
+
+  - *С поправкой на сами сообщения об ошибках компиляции
 
 * Отладка
 
-* Continuous Integration
+** Отладка
+
+- ~println!~
+
+- =rust-gdb=
+
+- backtrace
+
+- следующая версия =gdb= будет поддерживать Rust нативно
+
+** Backtrace
+
+#+BEGIN_SRC
+% RUST_BACKTRACE=1 RUST_LOG=shurik=debug cargo run
+   Running `target/debug/shurik` thread '<main>'
+   panicked at 'called `Result::unwrap()` on an
+   `Err` value: Read(Error { repr: Os { code: 2,
+   message: "No such file or directory" } })',
+   ../src/libcore/result.rs:746 stack backtrace:
+   1: 0x56522f38f5c0 -
+   sys::backtrace::tracing::imp::write::h3675b4f0ca767761Xcv
+   2: 0x56522f39363b -
+   panicking::default_handler::_$u7b$$u7b$closure$u7d$$u7d$::closure.44519
+   3: 0x56522f3932a8 -
+   panicking::default_handler::h18faf4fbd296d909lSz
+#+END_SRC
+
+* Continuous Integration и развёртывание
+
+** Continuous Integration и развёртывание
+
+- Ставим компилятор =rustup='ом с флагом =--save=
+
+- *Внимание*: зависимости на системные библиотеки!
+
+* Особенно классное
+
+** Ни одного segmentation fault'а
+
+- Я не вру
+- Никаких звёздочек
+
+***                                                                  :B_note:
+    :PROPERTIES:
+    :BEAMER_env: note
+    :END:
+
+Просто задумайтесь, зачем вы пишете на системном языке без GC. Rust --- тот же
+язык, но без всех segfault'ов.
+
+** Все падения только по assert или unwrap
+
+- Внимание: ~.unwrap()~ --- это ~assert!()~ в овечьей шкуре
+
+* Ошибки и проблемы
+
+** Deadlock
+
+- Очень легко сделать из-за lock guards
+
+- Возникает детерминировано
+
+- Отлаживается элементарно
+
+** Медленная компиляция
+
+- .<<Холодная>> релизная сборка --- 2 минуты
+
+- .<<Горячая>> отладочная пересборка --- 8 секунд
+
+- Инкрементальная компиляция скоро будет
+
+- Ждали тоже MIR
+
+  https://github.com/rust-lang/rust/issues/2369
+
+** Нет рекомендаций по архитектуре
+
+Всевозможные шаблоны только зарождаются
+
+https://github.com/nrc/patterns
+
+** Иногда приходится обновлять библиотеки
+
+- Не проблема, когда это библиотеки на Rust
+
+- Если это обёртки к системным библиотекам (=.so=, =.dll=, =.dylib=), начинается
+  веселье
+
+- Приходится сводить все зависимости к совместимой со всеми версии
+
+** Неочевидные мелочи
+
+- У =hyper= пул соединений
+
+* Сообщения об ошибках
+
+** Сообщения об ошибках
+
+#+BEGIN_SRC
+   Compiling shurik v0.1.0 (file:...)
+src/main.rs:1253:19: 1253:32 error: the type
+  `[closure@src/main.rs:1253:33: 1257:6
+  mr_storage:alloc::arc::Arc<
+    std::sync::mutex::Mutex<
+      std::collections::hash::map::HashMap<
+        MrUid, MergeRequest>>>,
+  queue:alloc::arc::Arc<(
+    std::sync::mutex::Mutex<
+      collections::linked_list::LinkedList<
+        WorkerTask>>,
+      std::sync::condvar::Condvar)>,
+  config:&alloc::arc::Arc<toml::Value>,
+#+END_SRC
+
+** ...
+
+#+BEGIN_SRC
+  project_set:alloc::arc::Arc<ProjectSet>,
+  state_save_dir:
+    alloc::arc::Arc<collections::string::String>,
+  gitlab_session:alloc::arc::Arc<gitlab::Session>]`
+does not fulfill the required lifetime [E0477]
+src/main.rs:1253
+  let builder = thread::spawn(move || {
+                                   ^~~~~~~~~~~~~
+note: type must outlive the static lifetime
+error: aborting due to previous error
+Could not compile `shurik`.
+#+END_SRC
+
+** Глубоко вдохните и прогуляйтесь
+
+#+begin_src plantuml :file error-messages.png
+  actor "Вы" as vasya
+  actor "Программист Петя" as petya
+  database Twitter
+  entity Лес
+  vasya -> petya : В этом Расте ошибки просто !@#$%^!!
+  vasya -> Twitter : Ох что-то я ничего не понимаю в Расте :(
+  vasya -> Лес : Прогуляться и подышать свежим воздухом
+  activate Лес
+  Лес -> vasya : Выйти из леса
+  deactivate Лес
+  vasya -> vasya : Посмотреть на ошибку вдумчиво и исправить её
+
+  group Следующая итерация
+
+  end
+#+end_src
+
+** Если серьёзно
+
+Приходите в чат --- помогут разобраться
+
+https://gitter.im/ruRust/general
+
+** Почему я люблю компиляторы, которые умнее меня
+
+- Компилятор всегда прав*
+  - В отличие от людей
+  - В отличие от тестов
+  - *Кроме багов
+
+* Метрики
+
+** Метрики
+
+- 3000 строк кода
+
+  - 0 строк unsafe
+
+- 3 недели
 
 * Сообщество
 
+** Сообщество
+
+- Я организатор
+
+- http://rustycrate.ru
+
+*** Я организатор                                                    :B_note:
+    :PROPERTIES:
+    :BEAMER_env: note
+    :END:
+
 * Литература
+
+** Литература
+
+- "Язык программирования Rust"
+
+- "Растономикон"
+
+- "Маленькая книжка о макросах Rust"
+
+- [[https://gitter.im/ruRust/general][Чат]]
+
+- Reddit
+
+- http://rustycrate.ru
+
+* Backup
+
+** Рецензент не одобрил
+    :PROPERTIES:
+    :BEAMER_col: 0.7
+    :END:      
+
+#+begin_src plantuml :file rejected.png
+  actor Автор
+  actor Рецензент
+  database GitLab
+  entity Шурик
+  entity Jenkins
+  Автор -> GitLab : Merge Request #42
+  Рецензент -> GitLab : Комментарий к MR#42: r-
+  GitLab -> Шурик : MR WebHook
+  Шурик -> Шурик : MR не принят
+
+  group Следующая итерация
+
+  end
+#+end_src
+
+** Прогон не успешен, а затем merge conflict
+   :PROPERTIES:
+   :END:      
+
+***                                                                   :BMCOL:
+     :PROPERTIES:
+     :BEAMER_col: 0.92
+     :END:
+#+begin_src plantuml :file merge-conflict.png
+  actor "Автор 1"
+  actor "Автор 2"
+  actor Рецензент
+  database GitLab
+  entity "Шурик: web" as shweb
+  entity "Шурик: worker" as shwork
+  box "Шурик"
+    participant shweb
+    participant shwork
+  endbox
+  entity Jenkins
+  "Автор 1" -> GitLab : Merge Request #42
+  Рецензент -> GitLab : Комментарий к MR#42: r+
+  GitLab -> shweb : MR WebHook
+  activate shweb
+  shweb -> shwork : Обработай MR#42
+  deactivate shweb
+  activate shwork
+  shwork -> shwork : Обновить MR#42 до master
+  shwork -> GitLab : git push try (MR#42)
+  shwork -> Jenkins : Запустить сборку: ветка try (MR#42)
+  activate Jenkins
+  "Автор 2" -> GitLab : Merge Request #43
+  Рецензент -> GitLab : Комментарий к MR#43: r+
+  GitLab -> shweb : MR WebHook
+  activate shweb
+  shweb -> shwork : Обработай MR#43
+  deactivate shweb
+  Jenkins -> shwork : Результат сборки MR#42: с ошибками
+  deactivate Jenkins
+  shwork -> GitLab : Комментарий к MR#42: "Прогон с ошибками"
+  deactivate shwork
+  shweb -> shwork : Обновить MR#43 до master
+  activate shwork
+  shwork -> GitLab : git push try (MR#43)
+  shwork -> Jenkins : Запустить сборку: ветка try (MR#43)
+  activate Jenkins
+  Jenkins -> shwork : Результат сборки MR#43: успешно
+  deactivate Jenkins
+  shwork -> shwork : merge MR#43 в master
+  shwork -> GitLab : git push master
+  shwork -> GitLab : Комментарий к MR#43: "Успешно"
+  deactivate shwork
+  shwork -> shwork : Проверить что очередные MR можно слить
+  activate shwork
+  shwork -> shwork : Пробует обновить MR#42 до master: конфликт!
+  shwork -> GitLab : Комментарий к MR#42: "Не могу обновить, конфликт!"
+  deactivate shwork
+
+  group Следующая итерация
+
+  end
+
+#+end_src

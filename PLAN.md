@@ -44,6 +44,8 @@ Rust FFI Omnibus
 
 Рассказать о Hyper и почему в некоторых местах просто зовётся curl и wget
 
+*Неинтересно, не нужно*
+
 ## Git
 
 ## GitLab API
