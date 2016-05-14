@@ -122,11 +122,6 @@ Commit Gatekeeper под нашу инфраструктуру
 
 [[file:pics/hurt.png][file:~/org/talks/rust-web-dev/pics/hurt.png]]
 
-** Сценариев много
-
-...обрабатываются они все так, чтобы непротестированный кандидат не
-стал новым master
-
 * Что ещё есть
 
 ** Что ещё есть
@@ -138,22 +133,6 @@ Commit Gatekeeper под нашу инфраструктуру
 - Логи
 
 - Конфигурация в TOML-файле
-
-* <<Связанные изменения>>
-
-** Связанные изменения
-
-- Изменения в нескольких репозиториях
-
-- Если применить эти изменения не ко всем нужным репозиториям, это
-  приведёт к поломке сборки или тестов
-
-- Если не учитывать связанность изменений, сторож никогда их не
-  пропустит, т.к. тестирование каждого отдельного MR завершится ошибкой
-
-- Большой пласт функциональности
-
-- Пока не реализовано, будущая работа
 
 * Почему Rust?
 
@@ -187,12 +166,12 @@ Commit Gatekeeper под нашу инфраструктуру
 
 ** Почему Rust? (продолжение)
 
-- Вся наша большая команда разработчиков не будет останавливаться и ждать, пока
-  починят инфраструктуру
-
 - Редко ломается
 
 - Когда ломается --- это происходит в изолированных местах
+
+- Вся наша большая команда разработчиков не будет останавливаться и ждать, пока
+  починят инфраструктуру
 
 * Рабочее окружение
 
@@ -207,15 +186,6 @@ Commit Gatekeeper под нашу инфраструктуру
 - Т.е. =stable= содержит меньше неизвестных багов
 
 - =nightly= опасен тем, что нестабильные возможности могут изменить или удалить
-
-** Что с nightly
-
-- Мне не понадобилось ничего из =nightly=
-
-- Может быть нужен, если вам нужно что-то новое или нестабильное
-
-  - Например, кодогенерация (процедурные макросы), специализация (она ещё не в
-    =stable=; будет в 1.10) и т.д.
 
 ** multirust
 
@@ -283,12 +253,6 @@ Commit Gatekeeper под нашу инфраструктуру
 - ORM
   - rustorm
   - diesel
-
-** Состояние экосистемы (продолжение)
-
-Для бэкенда пойдёт!
-
-И для инфраструктурных серверов
 
 * Как найти библиотеки?
 
@@ -506,38 +470,6 @@ struct MergeRequest {
 }
 #+END_SRC
 
-** Сериализация в JSON (вручную) /1
-
-#+BEGIN_SRC rust
-impl Encodable for MrUid {
-    fn encode<S: Encoder>(&self, s: &mut S)
-       -> Result<(), S::Error> {
-        format!(
-          "{},{}", self.id, self.target_project_id)
-        .encode(s)
-    }
-}
-#+END_SRC
-
-** Сериализация в JSON (вручную) /2
-
-#+BEGIN_SRC rust
-impl Decodable for MrUid {
-    fn decode<D: Decoder>(d: &mut D)
-       -> Result<Self, D::Error> {
-        let s = try!(d.read_str());
-        let s_v: Vec<_> = s.split(",").collect();
-        let mut v: Vec<u64> =
-          s_v.iter().map(|x| x.parse().unwrap())
-                    .collect();
-        let mr_uid = MrUid {
-            target_project_id: v.pop().unwrap(),
-            id: v.pop().unwrap(),
-        };
-        Ok(mr_uid)
-    }
-#+END_SRC
-
 * Рефакторинг
 
 ** Рефакторинг
@@ -559,23 +491,6 @@ impl Decodable for MrUid {
 - backtrace
 
 - следующая версия =gdb= будет поддерживать Rust нативно
-
-** Backtrace
-
-#+BEGIN_SRC
-% RUST_BACKTRACE=1 RUST_LOG=shurik=debug cargo run
-   Running `target/debug/shurik` thread '<main>'
-   panicked at 'called `Result::unwrap()` on an
-   `Err` value: Read(Error { repr: Os { code: 2,
-   message: "No such file or directory" } })',
-   ../src/libcore/result.rs:746 stack backtrace:
-   1: 0x56522f38f5c0 -
-   sys::backtrace::tracing::imp::write::h3675b4f0ca767761Xcv
-   2: 0x56522f39363b -
-   panicking::default_handler::_$u7b$$u7b$closure$u7d$$u7d$::closure.44519
-   3: 0x56522f3932a8 -
-   panicking::default_handler::h18faf4fbd296d909lSz
-#+END_SRC
 
 * Профилирование
 
@@ -623,7 +538,7 @@ impl Decodable for MrUid {
 
 - Очень легко сделать из-за lock guards
 
-- Возникает детерминировано
+- Возникает детерминированно
 
 - Отлаживается элементарно
 
@@ -727,17 +642,19 @@ https://gitter.im/ruRust/general
 
 ** Метрики
 
+- 1 месяц
+
 - 3000 строк кода
 
   - 0 строк unsafe
 
-- 3 недели
+- 0 segfault'ов
+
+- 0 гонок
 
 * Сообщество
 
 ** Сообщество
-
-- Я организатор
 
 - http://rustycrate.ru
 
@@ -756,11 +673,11 @@ https://github.com/mkpankov/shurik
 
 ** Литература
 
-- "Язык программирования Rust"
+- [[http://rurust.github.io/rust_book_ru/][<<Язык программирования Rust>>]]
 
-- "Растономикон"
+- [[https://github.com/ruRust/rustonomicon][<<Растономикон>>]]
 
-- "Маленькая книжка о макросах Rust"
+- [[https://github.com/ruRust/tlborm][<<Маленькая книжка о макросах Rust>>]]
 
 - [[https://gitter.im/ruRust/general][Чат]]
 
@@ -857,6 +774,19 @@ https://github.com/mkpankov/shurik
 
 #+end_src
 
+** Связанные изменения
+
+- Изменения в нескольких репозиториях
+
+- Если применить эти изменения не ко всем нужным репозиториям, это
+  приведёт к поломке сборки или тестов
+
+- Если не учитывать связанность изменений, сторож никогда их не
+  пропустит, т.к. тестирование каждого отдельного MR завершится ошибкой
+
+- Большой пласт функциональности
+
+- Пока не реализовано, будущая работа
 
 ** Макрос try!
 
@@ -880,3 +810,34 @@ let mr_storage_locked_2 =
   &*mr_storage.lock().unwrap();
 mr_storage_locked_2[...] = ... ;
 #+end_src
+** Сериализация в JSON (вручную) /1
+
+#+BEGIN_SRC rust
+impl Encodable for MrUid {
+    fn encode<S: Encoder>(&self, s: &mut S)
+       -> Result<(), S::Error> {
+        format!(
+          "{},{}", self.id, self.target_project_id)
+        .encode(s)
+    }
+}
+#+END_SRC
+
+** Сериализация в JSON (вручную) /2
+
+#+BEGIN_SRC rust
+impl Decodable for MrUid {
+    fn decode<D: Decoder>(d: &mut D)
+       -> Result<Self, D::Error> {
+        let s = try!(d.read_str());
+        let s_v: Vec<_> = s.split(",").collect();
+        let mut v: Vec<u64> =
+          s_v.iter().map(|x| x.parse().unwrap())
+                    .collect();
+        let mr_uid = MrUid {
+            target_project_id: v.pop().unwrap(),
+            id: v.pop().unwrap(),
+        };
+        Ok(mr_uid)
+    }
+#+END_SRC
