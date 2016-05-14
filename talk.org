@@ -35,15 +35,6 @@
 
 - В свободное время занимаюсь веб-разработкой
 
-** Какой у меня опыт разработки на Rust
-   :PROPERTIES:
-   :END:
-
-- Примерно 10000 строк
-
-- Вспомогательные инструменты, инфраструктура
-
-- Несколько веб-серверов
 
 * Задача
 
@@ -88,31 +79,11 @@ Commit Gatekeeper под нашу инфраструктуру
   обновляет master
 - Уведомляет автора, если очередной MR невозможно слить автоматически
 
-** Как это работает
+** Как это выглядит
 
    [[file:pics/discussion.png][file:~/org/talks/rust-web-dev/pics/discussion.png]]
 
-* Сценарии работы
-
-** Рецензент одобрил и прогон успешен
-    :PROPERTIES:
-    :END:      
-
-#+begin_src plantuml :file simplest.png
-  actor Автор
-  actor Рецензент
-  database GitLab
-  entity Шурик
-  entity Jenkins
-  Автор -> GitLab : Merge Request #42
-  Рецензент -> GitLab : Комментарий к MR#42: r+
-  GitLab -> Шурик : MR WebHook
-  Шурик -> Шурик : Обновить MR до master
-  Шурик -> GitLab : git push try
-  Шурик -> Jenkins : Запустить сборку:\nветка try (MR#42)
-  Jenkins -> Шурик : Результат сборки:\nуспешно
-  Шурик -> GitLab : git push master,\nMR#42 отмечается как merged
-#+end_src
+* Как это работает
 
 ** Рецензент одобрил, но прогон не успешен
    :PROPERTIES:
@@ -191,7 +162,7 @@ Commit Gatekeeper под нашу инфраструктуру
    :END:
 
 - Хорошая поддержка многопоточности стандартной библиотекой: мьютексы, каналы,
-  ~RwLock~...
+  ~RwLock~, ~CondVar~...
 
 - *Надёжные* многопоточность и обработка ошибок, при этом нулевые накладные
   расходы
@@ -373,13 +344,23 @@ http://jakegoulding.com/rust-ffi-omnibus/
 
 Написана своя минималистичная обёртка
 
-** GitLab API/2
+** GitLab API/2: Типы отражают состояния
 
 #+BEGIN_SRC rust
 pub struct Api {
     root: Url,
 }
 
+pub struct Session {
+    root: Url,
+    private_token: String,
+}
+
+#+END_SRC
+
+** GitLab API/3: Конструирование API проверяет URL
+
+#+BEGIN_SRC rust
 impl Api {
     pub fn new<T: IntoUrl>(maybe_url: T)
            -> Result<Self, ::url::ParseError> {
@@ -391,7 +372,7 @@ impl Api {
     }
 #+END_SRC
 
-** GitLab API/3
+** GitLab API/4: Обработка ошибок
 
 #+BEGIN_SRC rust
 impl Api {
@@ -410,7 +391,7 @@ impl Api {
               .send());
 #+END_SRC
 
-** GitLab API/4
+** GitLab API/5: Сложная обработка ошибок
 
 #+BEGIN_SRC rust
 ...     let mut text = String::new();
@@ -429,7 +410,7 @@ impl Api {
                .ok_or(JsonObjectStringError));
 #+END_SRC
 
-** GitLab API/5
+** GitLab API/6: Успех
 
 #+BEGIN_SRC rust
         Ok(
@@ -440,14 +421,9 @@ impl Api {
             })
     }
 }
-
-pub struct Session {
-    root: Url,
-    private_token: String,
-}
 #+END_SRC
 
-** GitLab API/6
+** GitLab API/7: Вспомогательный макрос
 
 #+BEGIN_SRC rust
 quick_error! {
@@ -601,6 +577,19 @@ impl Decodable for MrUid {
    panicking::default_handler::h18faf4fbd296d909lSz
 #+END_SRC
 
+* Профилирование
+
+** Профилирование
+
+- Производительность
+  - [[https://llogiq.github.io/2015/07/15/profiling.html][valgrind]]
+  - oprofile
+  - perf
+  - [[http://carol-nichols.com/2015/12/09/rust-profiling-on-osx-cpu-time/][Instruments]]
+- Покрытие
+  - [[https://users.rust-lang.org/t/tutorial-how-to-collect-test-coverages-for-rust-project/650#!][kcov]]
+  - [[https://users.rust-lang.org/t/tutorial-how-to-collect-test-coverages-for-rust-project/650/2?u%3Dmkpankov][coveralls.io]]
+
 * Continuous Integration и развёртывание
 
 ** Continuous Integration и развёртывание
@@ -664,10 +653,6 @@ https://github.com/nrc/patterns
   веселье
 
 - Приходится сводить все зависимости к совместимой со всеми версии
-
-** Неочевидные мелочи
-
-- У =hyper= пул соединений
 
 * Сообщения об ошибках
 
@@ -870,4 +855,28 @@ https://github.com/mkpankov/shurik
 
   end
 
+#+end_src
+
+
+** Макрос try!
+
+#+begin_src rust
+// try(f);
+
+match f {
+  Ok(o) => o,
+  Err(e) => return From::from(e),
+}
+#+end_src
+
+** Deadlock
+
+#+begin_src rust
+let mr_storage_locked_1 =
+  &*mr_storage.lock().unwrap();
+mr_storage_locked_1[...] = ... ;
+...
+let mr_storage_locked_2 =
+  &*mr_storage.lock().unwrap();
+mr_storage_locked_2[...] = ... ;
 #+end_src
