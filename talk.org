@@ -355,39 +355,7 @@ impl Api {
               .send());
 #+END_SRC
 
-** GitLab API/5: Сложная обработка ошибок
-
-#+BEGIN_SRC rust
-...     let mut text = String::new();
-        try!(res.read_to_string(&mut text));
-        let json: ::serde_json::value::Value =
-          ::serde_json::from_str(&text).unwrap();
-        let obj =
-          try!(json.as_object().ok_or(JsonError));
-        let private_token_value =
-          try!(obj
-               .get("private_token")
-               .ok_or(JsonObjectError));
-        let private_token =
-          try!(private_token_value
-               .as_string()
-               .ok_or(JsonObjectStringError));
-#+END_SRC
-
-** GitLab API/6: Успех
-
-#+BEGIN_SRC rust
-        Ok(
-            Session {
-                root: self.root.clone(),
-                private_token: private_token
-                               .to_owned(),
-            })
-    }
-}
-#+END_SRC
-
-** GitLab API/7: Вспомогательный макрос
+** GitLab API/5: Вспомогательный макрос
 
 #+BEGIN_SRC rust
 quick_error! {
@@ -638,20 +606,6 @@ https://gitter.im/ruRust/general
   - В отличие от тестов
   - *Кроме багов
 
-* Метрики
-
-** Метрики
-
-- 1 месяц
-
-- 3000 строк кода
-
-  - 0 строк unsafe
-
-- 0 segfault'ов
-
-- 0 гонок
-
 * Сообщество
 
 ** Сообщество
@@ -841,3 +795,36 @@ impl Decodable for MrUid {
         Ok(mr_uid)
     }
 #+END_SRC
+
+** GitLab API/5: Сложная обработка ошибок
+
+#+BEGIN_SRC rust
+...     let mut text = String::new();
+        try!(res.read_to_string(&mut text));
+        let json: ::serde_json::value::Value =
+          ::serde_json::from_str(&text).unwrap();
+        let obj =
+          try!(json.as_object().ok_or(JsonError));
+        let private_token_value =
+          try!(obj
+               .get("private_token")
+               .ok_or(JsonObjectError));
+        let private_token =
+          try!(private_token_value
+               .as_string()
+               .ok_or(JsonObjectStringError));
+#+END_SRC
+
+** GitLab API/6: Успех
+
+#+BEGIN_SRC rust
+        Ok(
+            Session {
+                root: self.root.clone(),
+                private_token: private_token
+                               .to_owned(),
+            })
+    }
+}
+#+END_SRC
+
