@@ -35,6 +35,9 @@
 
 - В свободное время занимаюсь веб-разработкой
 
+- Один из основных переводчиков <<The Rust Programming Language>> на русский язык
+
+- Основатель русскоязычного сообщества Rust [[http://rustycrate.ru][http://rustycrate.ru]]
 
 * Задача
 
@@ -354,7 +357,13 @@ impl Api {
               .send());
 #+END_SRC
 
-** GitLab API/5: Вспомогательный макрос
+** GitLab API/5: Как эта функция вызывается
+
+#+BEGIN_SRC rust
+let gitlab_session = gitlab_api.login(gitlab_user, gitlab_password).unwrap();
+#+END_SRC
+
+** GitLab API/6: Вспомогательный макрос
 
 #+BEGIN_SRC rust
 quick_error! {
@@ -381,6 +390,12 @@ quick_error! {
     let gitlab_session =
       login_to_gitlab(gitlab_login_config).unwrap();
     let gitlab_session = Arc::new(gitlab_session);
+#+END_SRC
+
+** Разделяемое состояние (продолжение)
+
+#+BEGIN_SRC rust
+    let gitlab_session = Arc::new(gitlab_session);
     for (psid, project_set) in project_sets {
         init_project_set(
             gitlab_session.clone(), psid, project_set,
@@ -391,6 +406,7 @@ quick_error! {
         (&*gitlab_address, gitlab_port))
         .expect("Couldn't start the web server");
 #+END_SRC
+
 
 ** Многопоточность
 
@@ -465,16 +481,25 @@ struct MergeRequest {
 
 - Производительность
   - [[https://llogiq.github.io/2015/07/15/profiling.html][valgrind]]
+
+    [[https://llogiq.github.io/2015/07/15/profiling.html][https://llogiq.github.io/2015/07/15/profiling.html]]
   - oprofile
   - perf
   - [[http://carol-nichols.com/2015/12/09/rust-profiling-on-osx-cpu-time/][Instruments]]
+
+    http://carol-nichols.com/2015/12/09/rust-profiling-on-osx-cpu-time/
 - Покрытие
   - [[https://users.rust-lang.org/t/tutorial-how-to-collect-test-coverages-for-rust-project/650#!][kcov]]
+
+    https://is.gd/rust_kcov
+
   - [[https://users.rust-lang.org/t/tutorial-how-to-collect-test-coverages-for-rust-project/650/2?u%3Dmkpankov][coveralls.io]]
 
-* Continuous Integration и развёртывание
+    https://is.gd/rust_coveralls
 
-** Continuous Integration и развёртывание
+* Развёртывание компилятора и приложений
+
+** Развёртывание компилятора и приложений
 
 - Ставим компилятор =rustup='ом с флагом =--save=
 
@@ -503,7 +528,7 @@ struct MergeRequest {
 
 ** Deadlock
 
-- Очень легко сделать из-за lock guards
+- Deadlock очень легко сделать из-за lock guards
 
 - Возникает детерминированно
 
@@ -511,13 +536,17 @@ struct MergeRequest {
 
 ** Медленная компиляция
 
-- .<<Холодная>> релизная сборка --- 2 минуты
+- Сборка всего проекта, с зависимостями, в релизе
 
-- .<<Горячая>> отладочная пересборка --- 8 секунд
+  2 минуты
+
+- Сборка только изменённых файлов проекта, без зависимостей, в дебаге
+
+  8 секунд
 
 - Инкрементальная компиляция скоро будет
 
-- Ждали тоже MIR
+- Ждали окончания рефакторинга компилятора (MIR)
 
   https://github.com/rust-lang/rust/issues/2369
 
@@ -534,13 +563,13 @@ https://github.com/nrc/patterns
 - Если это обёртки к системным библиотекам (=.so=, =.dll=, =.dylib=), начинается
   веселье
 
-- Приходится сводить все зависимости к совместимой со всеми версии
+- Приходится сводить все зависимости к совместимым версиям обёртки
 
 * Сообщения об ошибках
 
 ** Сообщения об ошибках
 
-#+BEGIN_SRC
+#+BEGIN_SRC text
    Compiling shurik v0.1.0 (file:...)
 src/main.rs:1253:19: 1253:32 error: the type
   `[closure@src/main.rs:1253:33: 1257:6
@@ -558,7 +587,7 @@ src/main.rs:1253:19: 1253:32 error: the type
 
 ** ...
 
-#+BEGIN_SRC
+#+BEGIN_SRC text
   project_set:alloc::arc::Arc<ProjectSet>,
   state_save_dir:
     alloc::arc::Arc<collections::string::String>,
@@ -622,21 +651,35 @@ https://gitter.im/ruRust/general
 
 https://github.com/mkpankov/shurik
 
-* Литература
+* Ссылки
 
-** Литература
+** Ссылки
 
 - [[http://rurust.github.io/rust_book_ru/][<<Язык программирования Rust>>]]
 
+  [[http://rurust.github.io/rust_book_ru/][http://rurust.github.io/rust_book_ru/]]
+
 - [[https://github.com/ruRust/rustonomicon][<<Растономикон>>]]
+
+  [[https://github.com/ruRust/rustonomicon][https://github.com/ruRust/rustonomicon]]
 
 - [[https://github.com/ruRust/tlborm][<<Маленькая книжка о макросах Rust>>]]
 
-- [[https://gitter.im/ruRust/general][Чат]]
+  [[https://github.com/ruRust/tlborm][https://github.com/ruRust/tlborm]]
+
+- Чат
+
+  [[https://gitter.im/ruRust/general][https://gitter.im/ruRust/general]]
 
 - Reddit
 
+  [[http://reddit.com/r/rust/][http://reddit.com/r/rust/]]
+
 - http://rustycrate.ru
+
+** Где найти этот доклад
+
+   [[http://mkpankov.github.io/rust-web-dev-2016/talk.pdf][http://mkpankov.github.io/rust-web-dev-2016/talk.pdf]]
 
 * Спасибо!
 
